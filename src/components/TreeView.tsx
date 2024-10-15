@@ -96,7 +96,7 @@ export default function TreeView(props: TreeViewProps): ReactElement {
                 &#10148;
               </span>
             ) : (
-              renderNodeIcon(props.node.name.split("/")[0])
+              renderNodeIcon(props.node.name.split("/")[0] ?? "")
             )}
 
             {props.node.value != undefined ? (

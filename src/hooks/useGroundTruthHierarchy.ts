@@ -1,10 +1,10 @@
 // @ts-nocheck
-
 import { MessageEvent, PanelExtensionContext, RenderState, Time } from "@lichtblick/suite";
 import { useEffect, useState } from "react";
+
 import { BaseParam, Message, RenderTree, MovivngObjectEnum } from "../types/message";
 
-import { Time } from "@foxglove/schemas/schemas/typescript/Time";
+// import { Time } from "@foxglove/schemas/schemas/typescript/Time";
 
 export function formatTimeRaw(stamp: Time): string {
   return `${stamp?.sec}.${stamp?.nsec.toFixed().padStart(9, "0")}`;

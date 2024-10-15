@@ -1,6 +1,7 @@
-import { ReactElement } from 'react';
-import { RenderTree } from '../types/message';
-import TreeView from './TreeView';
+import { ReactElement } from "react";
+
+import TreeView from "./TreeView";
+import { RenderTree } from "../types/message";
 
 interface TreeViewChildsProps {
   node: RenderTree;
