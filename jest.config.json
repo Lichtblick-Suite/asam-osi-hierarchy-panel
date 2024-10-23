@@ -1,0 +1,12 @@
+{
+    "testEnvironment": "jsdom",
+    "testRunner": "jest-circus/runner",
+    "testMatch": ["<rootDir>/src/**/*.spec.ts"],
+    "transform": {
+      "^.+\\.ts$": [
+        "esbuild-jest", {
+          "sourcemap": true
+        }
+      ]
+    }
+  }
