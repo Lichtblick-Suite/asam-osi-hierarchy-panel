@@ -5,7 +5,7 @@
   "publisher": "Lichtblick",
   "homepage": "https://github.com/Lichtblick-Suite/asam-osi-hierarchy-panel",
   "version": "0.0.1",
-  "license": "Mozilla Public License Version 2.0",
+  "license": "MIT",
   "main": "./dist/extension.js",
   "keywords": [],
   "scripts": {
