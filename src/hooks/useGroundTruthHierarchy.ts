@@ -1,5 +1,4 @@
-// @ts-nocheck
-import { MessageEvent, PanelExtensionContext, RenderState, Time } from "@lichtblick/suite";
+import { MessageEvent, PanelExtensionContext, Time } from "@lichtblick/suite";
 import { useEffect, useState } from "react";
 
 import { BaseParam, Message, RenderTree, MovivngObjectEnum } from "../types/message";
@@ -7,10 +6,25 @@ import { BaseParam, Message, RenderTree, MovivngObjectEnum } from "../types/mess
 // import { Time } from "@foxglove/schemas/schemas/typescript/Time";
 
 export function formatTimeRaw(stamp: Time): string {
-  return `${stamp?.sec}.${stamp?.nsec.toFixed().padStart(9, "0")}`;
+  return `${stamp.sec}.${stamp.nsec.toFixed().padStart(9, "0")}`;
 }
 
-export default function useGroundTruthHierarchy() {
+export interface GroundTruthHierarchy {
+  items: RenderTree | undefined;
+  renderDone: (() => void) | undefined;
+  setCurrentFilter: React.Dispatch<React.SetStateAction<string | undefined>>;
+  defaultSelected: string[];
+  setDefaultSelected: React.Dispatch<React.SetStateAction<string[]>>;
+  mapParams: (params: MessageEvent<Message>) => BaseParam[];
+  getTime: (time?: Time) => number;
+  handleChange: (context: Pick<PanelExtensionContext, "onRender">) => void;
+  mapBaseParam: (params: BaseParam[], time: Time) => BaseParam[];
+  createTreeView: (params: BaseParam[]) => RenderTree;
+  metaData: string;
+  getMetaData: (schemaName: string, time: Time) => string;
+}
+
+export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
   const [currentFilter, setCurrentFilter] = useState<string>();
   const [currentAllParams, setCurrentAllParams] = useState<BaseParam[]>([]);
   const [items, setItems] = useState<RenderTree>();
@@ -41,20 +55,24 @@ export default function useGroundTruthHierarchy() {
     return `${schemaName} @ ${formatTimeRaw(time)} sec`;
   };
 
-  const createTreeView = (params: BaseParam[]) => {
-    const mapper: any = {};
-    const tree: any = {};
+  const createTreeView = (params: BaseParam[]): RenderTree => {
+    const mapper: Record<string, RenderTree> = {};
+    const tree = {} as RenderTree;
 
     for (const str of params) {
-      let splits = str.context.split("/"),
-        name = "";
+      const splits = str.context.split("/");
+      let name = "";
 
-      splits.reduce((parent, place, i) => {
-        name ? (name += `/${place}`) : (name = place);
+      splits.reduce<RenderTree>((parent, place, i): RenderTree => {
+        if (name) {
+          name += `/${place}`;
+        } else {
+          name = place;
+        }
 
         if (!mapper[name]) {
           let o;
-          const label = name?.split("/")[name.split("/").length - 1];
+          const label = name.split("/")[name.split("/").length - 1];
 
           if (splits.length - 1 === i) {
             o = {
@@ -74,16 +92,16 @@ export default function useGroundTruthHierarchy() {
             };
           }
 
-          mapper[name] = o;
-          parent.children = parent.children || [];
-          parent.children.push(o);
+          mapper[name] = o as RenderTree;
+          parent.children = parent.children ?? [];
+          parent.children.push(o as RenderTree);
         } else if (splits.length - 1 === i || !str.context.includes("/")) {
-          mapper[name].value = str.value;
-          mapper[name].time = str.time;
-          mapper[name].index = i;
+          mapper[name]!.value = Number(str.value);
+          mapper[name]!.time = str.time;
+          mapper[name]!.index = i;
         }
 
-        return mapper[name];
+        return mapper[name]!;
       }, tree);
     }
 
@@ -163,12 +181,12 @@ export default function useGroundTruthHierarchy() {
   };
 
   const handleChange = (context: Pick<PanelExtensionContext, "onRender">) => {
-    context.onRender = (render_state: RenderState, done) => {
-      if (!render_state?.currentFrame) {
+    context.onRender = (render_state, done) => {
+      if (!render_state.currentFrame) {
         setRenderDone(() => done);
         return;
       } else {
-        const value = render_state.currentFrame?.at(-1) as MessageEvent<Message>;
+        const value = render_state.currentFrame.at(-1) as MessageEvent<Message> | undefined;
         if (value) {
           const data = getMetaData(value.schemaName, value.receiveTime);
           setMetaData(data);

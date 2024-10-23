@@ -11,7 +11,7 @@ interface TreeViewProps {
   node: RenderTree;
   defaultSelected: string[];
   onSelectedChanged: (ids: string[]) => void;
-  key?: React.Attributes;
+  key?: React.Key;
 }
 
 const NodeIconMap: { [key: string]: IconType } = {
@@ -33,6 +33,7 @@ export default function TreeView(props: TreeViewProps): ReactElement {
         onSelectedChanged={props.onSelectedChanged}
         defaultSelected={props.defaultSelected}
         node={props.node}
+        key={props.key}
       />
     ) : null;
   };
@@ -86,7 +87,7 @@ export default function TreeView(props: TreeViewProps): ReactElement {
               paddingLeft: 12 * props.node.index,
             }}
           >
-            {props.node.children?.length && props.node.children.length > 0 ? (
+            {props.node.children && props.node.children.length > 0 ? (
               <span
                 style={Object.assign(
                   { fontSize: "0.6rem" },

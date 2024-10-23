@@ -23,7 +23,7 @@ function GroundTruthHierarchyPanel({ context }: { context: PanelExtensionContext
 
     context.watch("currentFrame");
     context.subscribe(["/sim/groundtruth_topic"]);
-  }, [context]);
+  }, [context, handleChange]);
 
   useEffect(() => {
     renderDone?.();
