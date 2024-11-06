@@ -1,5 +1,5 @@
-import { PanelExtensionContext } from "@lichtblick/suite";
-import React, { useEffect, useLayoutEffect, ReactElement } from "react";
+import { PanelExtensionContext, Subscription } from "@lichtblick/suite";
+import React, { useEffect, useLayoutEffect, ReactElement, useMemo } from "react";
 import * as ReactDOM from "react-dom";
 import { FaMagnifyingGlass } from "react-icons/fa6";
 
@@ -11,6 +11,7 @@ function GroundTruthHierarchyPanel({ context }: { context: PanelExtensionContext
   const {
     defaultSelected,
     items,
+    topics,
     renderDone,
     setCurrentFilter,
     setDefaultSelected,
@@ -18,12 +19,18 @@ function GroundTruthHierarchyPanel({ context }: { context: PanelExtensionContext
     metaData,
   } = useGroundTruthHierarchy();
 
+  const topicsToSubscribe = useMemo(
+    () => (topics ?? []).filter((topic) => ["osi3.SensorView", "osi3.GroundTruth"].includes(topic.schemaName)).map((topic) => ({topic: topic.name} as Subscription)),
+    [topics],
+  );
+
   useLayoutEffect(() => {
     handleChange(context as Pick<PanelExtensionContext, "onRender">);
 
+    context.watch("topics");
     context.watch("currentFrame");
-    context.subscribe(["/sim/groundtruth_topic"]);
-  }, [context, handleChange]);
+    context.subscribe(topicsToSubscribe);
+  }, [context, handleChange, topicsToSubscribe]);
 
   useEffect(() => {
     renderDone?.();
