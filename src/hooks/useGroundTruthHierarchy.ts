@@ -1,6 +1,6 @@
 import { MessageEvent, PanelExtensionContext, Time, Topic } from "@lichtblick/suite";
 import { useEffect, useState } from "react";
-import { GroundTruth, MovingObject_Type, SensorView } from "asam-osi-types";
+import { GroundTruth, MovingObject_Type, SensorView } from "@lichtblick/asam-osi-types";
 import { DeepRequired } from "ts-essentials";
 
 import { BaseParam, RenderTree } from "../types/message";
@@ -130,7 +130,10 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
   }, [currentAllParams, currentFilter]);
 
   const mapParams = (params: MessageEvent<GroundTruth | SensorView>) => {
-    const message = params.schemaName == "osi3.SensorView" ? (params.message as DeepRequired<SensorView>).global_ground_truth : params.message as DeepRequired<GroundTruth>;
+    const message =
+      params.schemaName == "osi3.SensorView"
+        ? (params.message as DeepRequired<SensorView>).global_ground_truth
+        : (params.message as DeepRequired<GroundTruth>);
     const host_vehicle = message.moving_object
       .filter((x) => x.id.value === message.host_vehicle_id?.value)
       .map((x) =>
@@ -139,8 +142,7 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
     const traffic_vehicles = message.moving_object
       .filter(
         (x) =>
-          x.type === MovingObject_Type.VEHICLE &&
-          x.id.value !== message.host_vehicle_id?.value,
+          x.type === MovingObject_Type.VEHICLE && x.id.value !== message.host_vehicle_id?.value,
       )
       .map((x) =>
         createTreeItem("Vehicles/Traffic Vehicles/Traffic Vehicle", x.id.value, params.receiveTime),
@@ -187,7 +189,9 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
         setRenderDone(() => done);
         return;
       } else {
-        const value = render_state.currentFrame.at(-1) as MessageEvent<GroundTruth | SensorView> | undefined;
+        const value = render_state.currentFrame.at(-1) as
+          | MessageEvent<GroundTruth | SensorView>
+          | undefined;
         if (value) {
           const data = getMetaData(value.schemaName, value.receiveTime);
           setMetaData(data);

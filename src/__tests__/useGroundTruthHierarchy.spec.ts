@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 
 import useGroundTruthHierarchy from "../hooks/useGroundTruthHierarchy";
-import { GroundTruth, MovingObject_Type, SensorView } from "asam-osi-types";
+import { GroundTruth, MovingObject_Type, SensorView } from "@lichtblick/asam-osi-types";
 
 describe("ground truth hierarchy hook", () => {
   const { result } = renderHook(() => useGroundTruthHierarchy());
@@ -46,31 +46,41 @@ describe("ground truth hierarchy hook", () => {
         type: MovingObject_Type.PEDESTRIAN,
       },
     ],
-    stationary_object: [{
-      id: {
-        value: 3
-      }
-    }],
-    lane: [{
-      id: {
-        value: 4
-      }
-    }],
-    lane_boundary: [{
-      id: {
-        value: 5
-      }
-    }],
-    traffic_sign: [{
-      id: {
-        value: 6
-      }
-    }],
-    traffic_light: [{
-      id: {
-        value: 7
-      }
-    }],
+    stationary_object: [
+      {
+        id: {
+          value: 3,
+        },
+      },
+    ],
+    lane: [
+      {
+        id: {
+          value: 4,
+        },
+      },
+    ],
+    lane_boundary: [
+      {
+        id: {
+          value: 5,
+        },
+      },
+    ],
+    traffic_sign: [
+      {
+        id: {
+          value: 6,
+        },
+      },
+    ],
+    traffic_light: [
+      {
+        id: {
+          value: 7,
+        },
+      },
+    ],
   } as GroundTruth;
 
   it("convert time in nanosecond ", () => {
@@ -112,8 +122,8 @@ describe("ground truth hierarchy hook", () => {
       result.current.mapParams({
         schemaName: "osi3.SensorView",
         message: {
-          global_ground_truth: message
-        } as SensorView, 
+          global_ground_truth: message,
+        } as SensorView,
         receiveTime: { nsec: 1000000, sec: 100000000 },
         sizeInBytes: 1000,
         topic: "",
@@ -123,10 +133,16 @@ describe("ground truth hierarchy hook", () => {
   });
 
   it("mapBaseParams", () => {
-    const value = result.current.mapBaseParam(baseParams, { sec: 3310458, nsec: 925238075 })
-    expect(value).toEqual(expect.arrayContaining([
-      { context: "test/test1/test2/test3", time: { nsec: 925238075, sec: 3310458 }, value: false },
-    ]))
+    const value = result.current.mapBaseParam(baseParams, { sec: 3310458, nsec: 925238075 });
+    expect(value).toEqual(
+      expect.arrayContaining([
+        {
+          context: "test/test1/test2/test3",
+          time: { nsec: 925238075, sec: 3310458 },
+          value: false,
+        },
+      ]),
+    );
   });
 
   it("convert tree view object ", () => {

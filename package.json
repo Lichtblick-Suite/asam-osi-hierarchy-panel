@@ -18,6 +18,7 @@
     "test": "jest"
   },
   "devDependencies": {
+    "@lichtblick/asam-osi-types": "^3.7.0",
     "@lichtblick/eslint-plugin": "^1.0.1",
     "@lichtblick/suite": "^1.5.0",
     "@testing-library/dom": "^10.4.0",
@@ -27,7 +28,6 @@
     "@types/react-dom": "18.3.0",
     "@typescript-eslint/eslint-plugin": "6.21.0",
     "@typescript-eslint/parser": "6.21.0",
-    "asam-osi-types": "github:Lichtblick-Suite/asam-osi-types",
     "create-foxglove-extension": "1.0.3",
     "esbuild": "^0.24.0",
     "esbuild-jest": "^0.5.0",
