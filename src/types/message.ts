@@ -16,3 +16,8 @@ export interface RenderTree {
   children?: RenderTree[];
   index: number;
 }
+
+export interface ValidateSchemaResult {
+  message: string;
+  missingKeys: string[];
+}

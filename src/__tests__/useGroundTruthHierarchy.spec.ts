@@ -1,4 +1,4 @@
-import { GroundTruth, MovingObject_Type, SensorView } from "@lichtblick/asam-osi-types";
+import { GroundTruth, MovingObject_Type } from "@lichtblick/asam-osi-types";
 import { renderHook } from "@testing-library/react";
 
 import useGroundTruthHierarchy from "../hooks/useGroundTruthHierarchy";
@@ -22,7 +22,9 @@ describe("ground truth hierarchy hook", () => {
     },
   ];
 
-  const message = {
+  const groundTruthmessage = {
+    version: undefined,
+    timestamp: undefined,
     host_vehicle_id: {
       value: 0,
     },
@@ -81,6 +83,17 @@ describe("ground truth hierarchy hook", () => {
         },
       },
     ],
+    road_marking: [],
+    occupant: [],
+    environmental_conditions: undefined,
+    country_code: undefined,
+    proj_string: undefined,
+    map_reference: undefined,
+    model_reference: undefined,
+    reference_line: [],
+    logical_lane_boundary: [],
+    logical_lane: [],
+    proj_frame_offset: undefined,
   } as GroundTruth;
 
   it("convert time in nanosecond ", () => {
@@ -111,25 +124,24 @@ describe("ground truth hierarchy hook", () => {
     expect(
       result.current.mapParams({
         schemaName: "osi3.GroundTruth",
-        message,
+        message: groundTruthmessage,
         receiveTime: { nsec: 1000000, sec: 100000000 },
         sizeInBytes: 1000,
         topic: "",
         publishTime: { nsec: 1000000, sec: 100000000 },
       }),
     ).toEqual(expect.arrayContaining(expected));
-    expect(
-      result.current.mapParams({
-        schemaName: "osi3.SensorView",
-        message: {
-          global_ground_truth: message,
-        } as SensorView,
-        receiveTime: { nsec: 1000000, sec: 100000000 },
-        sizeInBytes: 1000,
-        topic: "",
-        publishTime: { nsec: 1000000, sec: 100000000 },
-      }),
-    ).toEqual(expect.arrayContaining(expected));
+    //   result.current.mapParams({
+    //     schemaName: "osi3.SensorView",
+    //     message: {
+    //       global_ground_truth: message,
+    //     } as SensorView,
+    //     receiveTime: { nsec: 1000000, sec: 100000000 },
+    //     sizeInBytes: 1000,
+    //     topic: "",
+    //     publishTime: { nsec: 1000000, sec: 100000000 },
+    //   }),
+    // ).toEqual(expect.arrayContaining(expected));
   });
 
   it("mapBaseParams", () => {

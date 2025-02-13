@@ -1,9 +1,15 @@
-import { GroundTruth, MovingObject_Type, SensorView } from "@lichtblick/asam-osi-types";
+import {
+  GroundTruth,
+  MovingObject_Type,
+  SensorView,
+  detectSchemaType,
+  validateAsamOsiMessage,
+} from "@lichtblick/asam-osi-types";
 import { MessageEvent, PanelExtensionContext, Time, Topic } from "@lichtblick/suite";
 import { useEffect, useState } from "react";
 import { DeepRequired } from "ts-essentials";
 
-import { BaseParam, RenderTree } from "../types/message";
+import { BaseParam, RenderTree, ValidateSchemaResult } from "../types/message";
 
 export function formatTimeRaw(stamp: Time): string {
   return `${stamp.sec}.${stamp.nsec.toFixed().padStart(9, "0")}`;
@@ -23,6 +29,8 @@ export interface GroundTruthHierarchy {
   createTreeView: (params: BaseParam[]) => RenderTree;
   metaData: string;
   getMetaData: (schemaName: string, time: Time) => string;
+  error: string | null;
+  warning: ValidateSchemaResult | null;
 }
 
 export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
@@ -43,9 +51,11 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
     "Traffic Lights",
   ]);
   const [metaData, setMetaData] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<ValidateSchemaResult | null>(null);
 
   const mapBaseParam = (params: BaseParam[], time: Time): BaseParam[] =>
-    params.map(
+    params?.map(
       (y: BaseParam): BaseParam => ({
         context: y.context,
         value: y.value,
@@ -120,7 +130,7 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
   useEffect(() => {
     if (currentFilter) {
       const regex = new RegExp(currentFilter, "i");
-      const currentFilteredParams = currentAllParams.filter((x) => regex.test(x.context));
+      const currentFilteredParams = currentAllParams?.filter((x) => regex.test(x.context));
       const filteredTree = createTreeView(currentFilteredParams);
       setItems(filteredTree);
     } else {
@@ -130,40 +140,135 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
   }, [currentAllParams, currentFilter]);
 
   const mapParams = (params: MessageEvent<GroundTruth | SensorView>) => {
+    setError(null);
+    setWarning(null);
+
+    const rawMessage =
+      params.schemaName == "osi3.SensorView"
+        ? (params.message as DeepRequired<SensorView>)
+        : (params.message as DeepRequired<GroundTruth>);
+
     const message =
       params.schemaName == "osi3.SensorView"
         ? (params.message as DeepRequired<SensorView>).global_ground_truth
         : (params.message as DeepRequired<GroundTruth>);
-    const host_vehicle = message.moving_object
-      .filter((x) => x.id.value === message.host_vehicle_id.value)
-      .map((x) =>
-        createTreeItem("Vehicles/Host Vehicle/Host Vehicle", x.id.value, params.receiveTime),
+
+    const schemaType = detectSchemaType(rawMessage);
+
+    if (!schemaType) {
+      console.error(`Schema ${params.schemaName} does not match ASAM OSI structure`);
+      setError(`Schema does not match ASAM OSI structure`);
+      return [];
+    }
+
+    if (!validateAsamOsiMessage(rawMessage).result) {
+      console.warn(`Schema ${params.schemaName} has missing properties`);
+      setWarning({
+        message: `Schema has missing properties`,
+        missingKeys: validateAsamOsiMessage(rawMessage).missingKeys,
+      });
+    }
+
+    if (!params.schemaName.toLowerCase().includes(schemaType.toLocaleLowerCase())) {
+      console.warn(
+        `Schema ${params.schemaName} has a naming mismatch; Expected schema type: ${detectSchemaType(rawMessage)}`,
       );
-    const traffic_vehicles = message.moving_object
-      .filter(
-        (x) => x.type === MovingObject_Type.VEHICLE && x.id.value !== message.host_vehicle_id.value,
-      )
-      .map((x) =>
-        createTreeItem("Vehicles/Traffic Vehicles/Traffic Vehicle", x.id.value, params.receiveTime),
-      );
-    const pedestrians = message.moving_object
-      .filter((x) => x.type === MovingObject_Type.PEDESTRIAN)
-      .map((x) => createTreeItem("Pedestrians/Pedestrian", x.id.value, params.receiveTime));
-    const stationary_objects = message.stationary_object.map((x) =>
-      createTreeItem("Stationary Objects/Stationary Object", x.id.value, params.receiveTime),
-    );
-    const lanes = message.lane.map((x) =>
-      createTreeItem("Lanes/Lane", x.id.value, params.receiveTime),
-    );
-    const lane_boundaries = message.lane_boundary.map((x) =>
-      createTreeItem("Lane Boundaries/Lane Boundary", x.id.value, params.receiveTime),
-    );
-    const traffic_signs = message.traffic_sign.map((x) =>
-      createTreeItem("Traffic Signs/Traffic Sign", x.id.value, params.receiveTime),
-    );
-    const traffic_lights = message.traffic_light.map((x) =>
-      createTreeItem("Traffic Lights/Traffic Light", x.id.value, params.receiveTime),
-    );
+      setWarning({
+        message: `Schema naming mismatch`,
+        missingKeys: [],
+      });
+    }
+    let host_vehicle: BaseParam[] = [],
+      traffic_vehicles: BaseParam[] = [],
+      pedestrians: BaseParam[] = [],
+      stationary_objects: BaseParam[] = [],
+      lanes: BaseParam[] = [],
+      lane_boundaries: BaseParam[] = [],
+      traffic_signs: BaseParam[] = [],
+      traffic_lights: BaseParam[] = [];
+
+    try {
+      host_vehicle =
+        message.moving_object
+          ?.filter((x) => x.id.value === message.host_vehicle_id.value)
+          ?.map((x) =>
+            createTreeItem("Vehicles/Host Vehicle/Host Vehicle", x.id.value, params.receiveTime),
+          ) || [];
+    } catch (error) {
+      console.error("Error processing host_vehicle:", error);
+    }
+
+    try {
+      traffic_vehicles =
+        message.moving_object
+          ?.filter(
+            (x) =>
+              x.type === MovingObject_Type.VEHICLE && x.id.value !== message.host_vehicle_id.value,
+          )
+          ?.map((x) =>
+            createTreeItem(
+              "Vehicles/Traffic Vehicles/Traffic Vehicle",
+              x.id.value,
+              params.receiveTime,
+            ),
+          ) || [];
+    } catch (error) {
+      console.error("Error processing traffic_vehicles:", error);
+    }
+
+    try {
+      pedestrians =
+        message.moving_object
+          ?.filter((x) => x.type === MovingObject_Type.PEDESTRIAN)
+          ?.map((x) => createTreeItem("Pedestrians/Pedestrian", x.id.value, params.receiveTime)) ||
+        [];
+    } catch (error) {
+      console.error("Error processing pedestrians:", error);
+    }
+
+    try {
+      stationary_objects =
+        message.stationary_object?.map((x) =>
+          createTreeItem("Stationary Objects/Stationary Object", x.id.value, params.receiveTime),
+        ) || [];
+    } catch (error) {
+      console.error("Error processing stationary_objects:", error);
+    }
+
+    try {
+      lanes =
+        message.lane?.map((x) => createTreeItem("Lanes/Lane", x.id.value, params.receiveTime)) ||
+        [];
+    } catch (error) {
+      console.error("Error processing lanes:", error);
+    }
+
+    try {
+      lane_boundaries =
+        message.lane_boundary?.map((x) =>
+          createTreeItem("Lane Boundaries/Lane Boundary", x.id.value, params.receiveTime),
+        ) || [];
+    } catch (error) {
+      console.error("Error processing lane_boundaries:", error);
+    }
+
+    try {
+      traffic_signs =
+        message.traffic_sign?.map((x) =>
+          createTreeItem("Traffic Signs/Traffic Sign", x.id.value, params.receiveTime),
+        ) || [];
+    } catch (error) {
+      console.error("Error processing traffic_signs:", error);
+    }
+
+    try {
+      traffic_lights =
+        message.traffic_light?.map((x) =>
+          createTreeItem("Traffic Lights/Traffic Light", x.id.value, params.receiveTime),
+        ) || [];
+    } catch (error) {
+      console.error("Error processing traffic_lights:", error);
+    }
 
     return [
       ...host_vehicle,
@@ -216,5 +321,7 @@ export default function useGroundTruthHierarchy(): GroundTruthHierarchy {
     createTreeView,
     metaData,
     getMetaData,
+    error,
+    warning,
   };
 }
